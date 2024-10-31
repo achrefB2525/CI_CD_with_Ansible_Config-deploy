@@ -1,10 +1,10 @@
 
     - name: Get Nexus pod name
-      command: oc get pods -l app=nexus3 -n sonatype-registry -o jsonpath='{.items[0].metadata.name}'
+      command: kubectl get pods -l app=nexus3 -n sonatype-registry -o jsonpath='{.items[0].metadata.name}'
       register: nexus_pod_name
 
     - name: Get Nexus admin password
-      command: oc exec -n sonatype-registry {{ nexus_pod_name.stdout }} -- cat /nexus-data/admin.password
+      command: kubectl  exec -n sonatype-registry {{ nexus_pod_name.stdout }} -- cat /nexus-data/admin.password
       register: nexus_admin_password
 
     - name: Ensure destination directory exists

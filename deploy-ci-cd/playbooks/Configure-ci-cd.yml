@@ -9,13 +9,13 @@
 
   tasks:
     - name: Appliquer ClusterRoleBinding
-      command: oc apply -f {{ deploy_path }}/deploy-ci-cd/roleManager/ClusterRoleBinding.yaml
+      command: kubectl apply -f {{ deploy_path }}/deploy-ci-cd/roleManager/ClusterRoleBinding.yaml
 
     - name: Appliquer ClusterRoleToUser3spe
-      command: oc apply -f {{ deploy_path }}/deploy-ci-cd/roleManager/ClusterRoleToUser3spe.yaml
+      command: kubectl apply -f {{ deploy_path }}/deploy-ci-cd/roleManager/ClusterRoleToUser3spe.yaml
     
     - name: Appliquer ClusterRoleAdminToUser3spe
-      command: oc apply -f {{ deploy_path }}/deploy-ci-cd/roleManager/ClusterRoleBinding-Admin.yaml
+      command: kubectl apply -f {{ deploy_path }}/deploy-ci-cd/roleManager/ClusterRoleBinding-Admin.yaml
 
     - name: Inclure les tâches de configuration Sonar
       include_tasks: "{{ deploy_path }}/deploy-ci-cd/sonarqubedeploy/configSonar.yml"
