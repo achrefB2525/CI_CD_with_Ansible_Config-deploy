@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: 3spfe
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jenkins-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /mnt/jenkins
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jenkins-pvc
+  namespace: 3spfe
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins
+  namespace: 3spfe
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins
+  template:
+    metadata:
+      labels:
+        app: jenkins
+    spec:
+      containers:
+        - name: jenkins
+          image: docker-registry.default.svc:5000/openshift/jenkins
+          imagePullPolicy: IfNotPresent 
+          ports:
+            - name: http-port
+              containerPort: 8080
+            - name: agent
+              containerPort: 50000
+          env:
+            - name: OPENSHIFT_ENABLE_OAUTH
+              value: 'false'
+            - name: OPENSHIFT_ENABLE_REDIRECT_PROMPT
+              value: 'true'
+            - name: DISABLE_ADMINISTRATIVE_MONITORS
+              value: 'false'
+            - name: KUBERNETES_MASTER
+              value: 'https://kubernetes.default:443'
+            - name: KUBERNETES_TRUST_CERTIFICATES
+              value: 'true'
+            - name: JENKINS_SERVICE_NAME
+              value: jenkins
+            - name: JNLP_SERVICE_NAME
+              value: jenkins-jnlp
+            - name: JENKINS_OPTS
+              value: "--httpPort=8080 --httpListenAddress=0.0.0.0"
+          volumeMounts:
+            - name: jenkins-data
+              mountPath: /var/jenkins_home
+      volumes:
+        - name: jenkins-data
+          persistentVolumeClaim:
+            claimName: jenkins-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins
+  namespace: 3spfe
+spec:
+  type: NodePort
+  ports:
+    - name: http-port
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080
+  selector:
+    app: jenkins
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-jnlp
+  namespace: 3spfe
+spec:
+  type: ClusterIP
+  ports:
+    - name: agent
+      port: 50000
+      protocol: TCP
+      targetPort: 50000
+  selector:
+    app: jenkins
+

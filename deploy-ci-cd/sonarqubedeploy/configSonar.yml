@@ -1,0 +1,40 @@
+
+    - name: Change SonarQube admin password
+      command: >
+        curl -u admin:{{ sonar_current_password }} -X POST
+        --header "Content-Type: application/x-www-form-urlencoded"
+        "http://{{ host_ip }}:30090/api/users/change_password"
+        -d "login=admin&password={{ sonar_new_password }}&previousPassword={{ sonar_current_password }}"
+      register: change_password_response
+      ignore_errors: yes
+
+    - name: Check if password change was successful
+      debug:
+        var: change_password_response.stdout
+
+    - name: Delete existing SonarQube token
+      command: >
+        curl -u admin:{{ sonar_new_password }} -X POST
+        "http://{{ host_ip }}:30090/api/user_tokens/revoke?name={{ sonar_token_name }}&login=admin"
+      ignore_errors: yes  
+      register: delete_token_response
+
+    - name: Check if token deletion was successful
+      debug:
+        var: delete_token_response.stdout
+      when: delete_token_response is defined
+
+    - name: Generate SonarQube token
+      command: >
+        curl -u admin:{{ sonar_new_password }} -X POST
+        "http://{{ host_ip }}:30090/api/user_tokens/generate"
+        -d "name={{ sonar_token_name }}"
+      register: token_response
+      ignore_errors: yes  
+
+    - name: Save SonarQube token to file
+      copy:
+        content: "{{ token_response.stdout | from_json | json_query('token') }}"
+        dest: "{{ deploy_path }}/deploy-ci-cd/sonarqubedeploy/sonar_token.txt"
+      when: token_response.stdout is defined and 'token' in token_response.stdout
+

@@ -1,0 +1,120 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: sonar-pv
+  labels:
+    app: sonar
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: manual  # This should match the PVC's storage class
+  hostPath:
+    path: /mnt/data/sonar   # Ensure this path exists on the host
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sonar-pvc
+  namespace: testing  # Ensure this matches the namespace where you want to deploy your application
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: manual  # Must match the PV's storage class
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sonar-config
+  namespace: testing 
+  labels:
+    app: sonar
+data:
+  SONARQUBE_JDBC_URL: "jdbc:postgresql://postgres-svc:5432/sonar_db"
+  SONARQUBE_JDBC_USERNAME: "sonar_user"
+  SONARQUBE_JDBC_PASSWORD: "S0N4RQUB3"
+  JAVA_OPTS: "-Duser.timezone=Asia/Jakarta -Xmx2048m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonar-deployment  # Add a name for the deployment here
+  namespace: testing
+  labels:
+    app: sonar
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: sonar
+  template:
+    metadata:
+      labels:
+        app: sonar 
+    spec:
+      securityContext:
+        runAsUser: 0   # Utilisation de l'utilisateur root
+        runAsGroup: 0  # Utilisation du groupe root
+        fsGroup: 0     # Donne des permissions à l'utilisateur root pour les fichiers montés
+      initContainers:
+      - name: init
+        image: busybox:1.34
+        command:
+        - sysctl
+        - -w
+        - vm.max_map_count=262144
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          privileged: true
+      containers:
+      - name: sonarqube
+        image: sonarqube:8.9.7-community
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9000
+        envFrom:
+        - configMapRef:
+            name: sonar-config
+        securityContext:
+          privileged: true  # Privilèges élevés pour le conteneur
+        volumeMounts:
+        - name: app-pvc
+          mountPath: "/opt/sonarqube/data/"
+          subPath: data
+        - name: app-pvc
+          mountPath: "/opt/sonarqube/extensions/"
+          subPath: extensions
+        resources:
+          requests:
+            memory: "1024Mi"
+          limits:
+            memory: "2048Mi"
+      volumes:
+      - name: app-pvc
+        persistentVolumeClaim:
+          claimName: sonar-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonar-svc
+  namespace: testing
+  labels:
+    app: sonar
+spec:
+  type: NodePort
+  ports:
+    - port: 9000
+      targetPort: 9000
+      nodePort: 30090
+      name: sonar
+  selector:
+    app: sonar
+

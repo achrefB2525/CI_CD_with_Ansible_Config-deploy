@@ -1,0 +1,27 @@
+---
+- name: Playbook principal pour configurer les outils CI/CD
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - vars/vars.yml 
+    - vars/passwordvars.yml 
+    - vars/sonarvars.yaml
+
+  tasks:
+    - name: Appliquer ClusterRoleBinding
+      command: oc apply -f {{ deploy_path }}/deploy-ci-cd/roleManager/ClusterRoleBinding.yaml
+
+    - name: Appliquer ClusterRoleToUser3spe
+      command: oc apply -f {{ deploy_path }}/deploy-ci-cd/roleManager/ClusterRoleToUser3spe.yaml
+    
+    - name: Appliquer ClusterRoleAdminToUser3spe
+      command: oc apply -f {{ deploy_path }}/deploy-ci-cd/roleManager/ClusterRoleBinding-Admin.yaml
+
+    - name: Inclure les tâches de configuration Sonar
+      include_tasks: "{{ deploy_path }}/deploy-ci-cd/sonarqubedeploy/configSonar.yml"
+
+    - name: Inclure les tâches de configuration Nexus
+      include_tasks: "{{ deploy_path }}/deploy-ci-cd/nexus/ConfigureNexus.yml"
+
+    - name: Inclure les tâches de configuration Jenkins
+      include_tasks: "{{ deploy_path }}/deploy-ci-cd/jenkins-conf/ConfigureJenkins.yml"

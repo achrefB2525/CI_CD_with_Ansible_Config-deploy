@@ -1,0 +1,104 @@
+
+    - name: Get Nexus pod name
+      command: oc get pods -l app=nexus3 -n sonatype-registry -o jsonpath='{.items[0].metadata.name}'
+      register: nexus_pod_name
+
+    - name: Get Nexus admin password
+      command: oc exec -n sonatype-registry {{ nexus_pod_name.stdout }} -- cat /nexus-data/admin.password
+      register: nexus_admin_password
+
+    - name: Ensure destination directory exists
+      file:
+        path: "{{ deploy_path }}/deploy-ci-cd/nexus"
+        state: directory
+        mode: '0755'
+
+    - name: Write admin password to file
+      copy:
+        content: "{{ nexus_admin_password.stdout }}"
+        dest: "{{ deploy_path }}/deploy-ci-cd/nexus/token.txt"
+
+    - name: Set TOKEN variable
+      set_fact:
+        token: "{{ nexus_admin_password.stdout }}"
+
+    - name: Create Groovy script to change admin password
+      command: >
+        curl -u admin:{{ token }} -X POST --header 'Content-Type: application/json'
+        http://{{ host_ip }}:32323/service/rest/v1/script -d '{
+          "name": "change-admin-password",
+          "type": "groovy",
+          "content": "security.securitySystem.changePassword(\"admin\", \"root\");"
+        }'
+      register: create_change_password_script
+
+    - name: Run the Groovy script to change admin password
+      command: >
+        curl -u admin:{{ token }} -X POST --header 'Content-Type: text/plain'
+        http://{{ host_ip }}:32323/service/rest/v1/script/change-admin-password/run
+      register: run_change_password_script
+
+    - name: Delete the Groovy script for changing admin password
+      command: >
+        curl -u admin:root -X DELETE
+        http://{{ host_ip }}:32323/service/rest/v1/script/change-admin-password
+      register: delete_change_password_script
+
+    - name: Create Groovy script to enable anonymous access
+      command: >
+        curl -u admin:root -X POST --header 'Content-Type: application/json'
+        http://{{ host_ip }}:32323/service/rest/v1/script -d '{
+          "name": "anonymous",
+          "type": "groovy",
+          "content": "security.setAnonymousAccess(true);"
+        }'
+      register: create_enable_anonymous_script
+
+    - name: Run the Groovy script to enable anonymous access
+      command: >
+        curl -u admin:root -X POST --header 'Content-Type: text/plain'
+        http://{{ host_ip }}:32323/service/rest/v1/script/anonymous/run
+      register: run_enable_anonymous_script
+
+    - name: Delete the Groovy script for enabling anonymous access
+      command: >
+        curl -u admin:root -X DELETE
+        http://{{ host_ip }}:32323/service/rest/v1/script/anonymous
+      register: delete_enable_anonymous_script
+
+    - name: Create Groovy script for Maven Repository
+      command: >
+        curl -u admin:root -X POST --header 'Content-Type: application/json'
+        http://{{ host_ip }}:32323/service/rest/v1/script -d '{
+          "name": "createDeploymentRepo",
+          "type": "groovy",
+          "content": "def repo = repository.createMavenHosted(\"deploymentRepo\"); repo.getConfiguration().getAttributes().get(\"storage\").put(\"writePolicy\", \"ALLOW\"); repository.repositoryManager.update(repo.getConfiguration());"
+        }'
+      register: create_repo_script
+
+    - name: Run the Groovy script to create Maven Repository
+      command: >
+        curl -u admin:root -X POST --header 'Content-Type: text/plain'
+        http://{{ host_ip }}:32323/service/rest/v1/script/createDeploymentRepo/run
+      register: run_create_repo_script
+
+    - name: Delete the Groovy script for Maven Repository
+      command: >
+        curl -u admin:root -X DELETE
+        http://{{ host_ip }}:32323/service/rest/v1/script/createDeploymentRepo
+      register: delete_create_repo_script
+
+    - name: Update anonymous user roles
+      command: >
+        curl -v -X PUT http://{{ host_ip }}:32323/service/rest/v1/security/users/anonymous
+        -u "admin:root" -H "Content-Type: application/json"
+        -d '{
+          "userId": "anonymous",
+          "firstName": "Anonymous",
+          "lastName": "User",
+          "emailAddress": "anonymous@example.org",
+          "status": "active",
+          "roles": ["nx-anonymous", "nx-admin"],
+          "source": "default"
+        }'
+      register: update_anonymous_user

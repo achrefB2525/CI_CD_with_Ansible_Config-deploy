@@ -1,0 +1,72 @@
+
+    - name: Créer un job Jenkins avec le fichier configjob.xml
+      ansible.builtin.shell: |
+        curl -X POST "http://{{ host_ip }}:30080/createItem?name=achref" \
+        --user "admin:password" \
+        --header "Content-Type: application/xml" \
+        --data-binary "@{{ deploy_path }}/deploy-ci-cd/jenkins-conf/configjob.xml"
+      args:
+        chdir: "{{ playbook_dir }}"
+      register: create_job_response
+
+    - name: Afficher la réponse de création du job
+      debug:
+        var: create_job_response.stdout
+
+    - name: Récupérer l'adresse IP du service jenkins-jnlp
+      command: oc get svc jenkins-jnlp -n 3spfe -o jsonpath='{.spec.clusterIP}'
+      register: jenkins_jnlp_ip
+
+    - name: Vérifier si l'adresse IP est vide
+      fail:
+        msg: "Aucune adresse IP trouvée pour le service jenkins-jnlp."
+      when: jenkins_jnlp_ip.stdout == ""
+
+    - name: Modifier la valeur jenkinsTunnel dans JenkinsConfigurationasCode.yaml
+      ansible.builtin.lineinfile:
+        path: "{{ deploy_path }}/deploy-ci-cd/jenkins-conf/JenkinsConfigurationasCode.yaml"
+        regexp: '^ *jenkinsTunnel:'
+        line: "      jenkinsTunnel: '{{ jenkins_jnlp_ip.stdout }}:50000'"
+      when: jenkins_jnlp_ip.stdout != ""
+
+    - name: Lire le token Sonar depuis le fichier
+      ansible.builtin.command: cat {{ deploy_path }}/deploy-ci-cd/sonarqubedeploy/sonar_token.txt
+      register: sonar_token
+
+    - name: Créer un fichier temporaire avec la section credentials
+      ansible.builtin.copy:
+        dest: "{{ deploy_path }}/deploy-ci-cd/jenkins-conf/tmp_credentials.yaml"
+        content: |
+          credentials:
+            system:
+              domainCredentials:
+                - credentials:
+                    - string:
+                        id: "sonar"
+                        scope: GLOBAL
+                        secret: "{{ sonar_token.stdout }}"
+                    - string:
+                        id: "dockerhub"
+                        scope: GLOBAL
+                        secret: "{{ docker_password }}"
+      when: sonar_token.stdout != ""
+
+    - name: Concaténer le fichier temporaire avec l'ancien fichier
+      ansible.builtin.shell: |
+        cat {{ deploy_path }}/deploy-ci-cd/jenkins-conf/tmp_credentials.yaml {{ deploy_path }}/deploy-ci-cd/jenkins-conf/JenkinsConfigurationasCode.yaml > {{ deploy_path }}/deploy-ci-cd/jenkins-conf/JenkinsConfigurationasCode_new.yaml
+      register: concat_response
+
+    - name: Appliquer la configuration Jenkins avec Jenkins CLI
+      ansible.builtin.shell: |
+        java -jar {{ deploy_path }}/deploy-ci-cd/jenkins-conf/jenkins-cli.jar -s http://{{ host_ip }}:30080/ \
+        -auth admin:password apply-configuration < "{{ deploy_path }}/deploy-ci-cd/jenkins-conf/JenkinsConfigurationasCode_new.yaml"
+      args:
+        chdir: "{{ playbook_dir }}"
+      register: config_response
+
+    - name: Afficher la réponse de la configuration Jenkins
+      debug:
+        var: config_response.stdout
+
+ 
+

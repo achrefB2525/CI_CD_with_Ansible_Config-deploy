@@ -1,0 +1,366 @@
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - string:
+              id: "sonar"
+              scope: GLOBAL
+              secret: "b23052208f7191def524eba9e9a1e6d1eb18d61c"
+          - string:
+              id: "dockerhub"
+              scope: GLOBAL
+              secret: "achref2525"
+
+jenkins:
+  agentProtocols:
+  - "JNLP4-connect"
+  - "Ping"
+  authorizationStrategy:
+    globalMatrix:
+      entries:
+      - userOrGroup:
+          name: "admin"
+          permissions:
+          - "Agent/Configure"
+          - "Agent/Delete"
+          - "Job/Build"
+          - "Job/Configure"
+          - "Job/Create"
+          - "Job/Delete"
+          - "Job/Read"
+          - "Job/Workspace"
+          - "Overall/Administer"
+          - "Overall/Read"
+          - "Run/Delete"
+          - "Run/Update"
+          - "SCM/Tag"
+          - "View/Configure"
+          - "View/Create"
+          - "View/Delete"
+  clouds:
+  - kubernetes:
+      addMasterProxyEnvVars: true
+      containerCap: 100
+      containerCapStr: "100"
+      jenkinsTunnel: '172.30.120.97:50000'
+      jenkinsUrl: "http://10.10.10.128:30080/"
+      name: "openshift"
+      namespace: "3spfe"
+      serverCertificate: |-
+        -----BEGIN CERTIFICATE-----
+        MIIC6jCCAdKgAwIBAgIBATANBgkqhkiG9w0BAQsFADAmMSQwIgYDVQQDDBtvcGVu
+        c2hpZnQtc2lnbmVyQDE3MTgyMTk1NjMwHhcNMjQwNjEyMTkxMjQyWhcNMjkwNjEx
+        MTkxMjQzWjAmMSQwIgYDVQQDDBtvcGVuc2hpZnQtc2lnbmVyQDE3MTgyMTk1NjMw
+        ggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDbT7W6FSg5XeYXMgbXIY9l
+        WrPIazRq2DbVULEjKBqOOpvXErDBX27ooMenZQgsx9qz5A/YoMgYZZxtCxtU5skt
+        eZGkPxu3++YzEAs7vsotbItRf6WvupoYF61cpGaqU3GWUwr+Dhzs2dU+0Kef44bM
+        jEh5o8tkLCewA8fYKLXDbipved+5QrjdTB1AbCSvNRmYckM0UR7fpFoyYKm0RmgB
+        xUaHqN+s7ypS5/swnC9YJf42Z63TsPVygEP7zd1uyoMxRIdCPoasOpn3lWGgpXsC
+        FxhFJ8HkCFho3RU5xeVbksjbqj4+XF7cF/9Jk4yKWBgfygMv1gZSkALfVnzPGt33
+        AgMBAAGjIzAhMA4GA1UdDwEB/wQEAwICpDAPBgNVHRMBAf8EBTADAQH/MA0GCSqG
+        SIb3DQEBCwUAA4IBAQAR0rnRVk5WBXKle6fUJ3OK3A4lP1NFqfFOxZLs/0pHBZBX
+        ky9Lvb4gtAdk1le/+42Wd4hM7XlJfCAOnSr/u7vEZuVc1dfpgqtYAb9ZP5bGWVU4
+        RnYZk9neog/aw1mGSuuD24QshuyI2EIvsM8ITeUOtz8YRJ3HnHSRjCuP9CxyyUKH
+        MZKjXdYbVu7bv30uHLfQ8SIUo5gBrJ6+voViTRn3Fkerx+ndZbLaqypgUm7W9yFi
+        9A7aTt7XXA13P+GhG1e1VVi3S6o4a8lvhVa+QilV3oIBVJeSfsGtg9G56oBYvIO9
+        7yV/0FKlwHWNPc8uAjgs26VEbw8bXiAwzNUG4QKo
+        -----END CERTIFICATE-----
+      serverUrl: "https://172.30.0.1:443"
+      templates:
+      - containers:
+        - alwaysPullImage: true
+          args: "^${computer.jnlpmac} ^${computer.name}"
+          image: "image-registry.openshift-image-registry.svc:5000/openshift/jenkins-agent-maven:latest"
+          name: "jnlp"
+          workingDir: "/tmp"
+        id: "maven-56ce159596d455e671e5c9b702b8fb4f"
+        label: "maven"
+        name: "maven"
+        serviceAccount: "default"
+        yamlMergeStrategy: "override"
+      - containers:
+        - alwaysPullImage: true
+          args: "^${computer.jnlpmac} ^${computer.name}"
+          image: "image-registry.openshift-image-registry.svc:5000/openshift/jenkins-agent-nodejs:latest"
+          name: "jnlp"
+          workingDir: "/tmp"
+        id: "nodejs-fb19de12a823f70b1c03ab4f2c9a5b98"
+        label: "nodejs"
+        name: "nodejs"
+        serviceAccount: "default"
+        yamlMergeStrategy: "override"
+      - containers:
+        - alwaysPullImage: true
+          args: "$(JENKINS_SECRET) $(JENKINS_NAME)"
+          image: "image-registry.openshift-image-registry.svc:5000/openshift/jenkins-agent-base:latest"
+          name: "jnlp"
+          workingDir: "/home/jenkins/agent"
+        - alwaysPullImage: true
+          command: "cat"
+          image: "image-registry.openshift-image-registry.svc:5000/openshift/java:latest"
+          name: "java"
+          ttyEnabled: true
+          workingDir: "/home/jenkins/agent"
+        id: "java-builder-f96a438bc18595460c14a89316094ddb"
+        label: "java-builder"
+        name: "java-builder"
+        serviceAccount: "default"
+        yamlMergeStrategy: "override"
+      - containers:
+        - alwaysPullImage: true
+          args: "$(JENKINS_SECRET) $(JENKINS_NAME)"
+          image: "image-registry.openshift-image-registry.svc:5000/openshift/jenkins-agent-base:latest"
+          name: "jnlp"
+          workingDir: "/home/jenkins/agent"
+        - alwaysPullImage: true
+          command: "cat"
+          image: "image-registry.openshift-image-registry.svc:5000/openshift/nodejs:latest"
+          name: "nodejs"
+          ttyEnabled: true
+          workingDir: "/home/jenkins/agent"
+        id: "nodejs-builder-c222b832cc98dc6ea8be35b9490d286c"
+        label: "nodejs-builder"
+        name: "nodejs-builder"
+        serviceAccount: "default"
+        yamlMergeStrategy: "override"
+      - id: "70e71f28-61f0-4168-8f76-c1cdbb44087a"
+        label: "kubeagent"
+        name: "jnlp"
+        namespace: "3spfe"
+        yaml: "apiVersion: v1\nkind: Pod\nmetadata:\n  name: agent\n  namespace: 3spfe\n\
+          spec:\n  containers:\n    - name: jnlp\n      image: quay.io/openshift/origin-jenkins-agent-maven\n\
+          \      command: [\"/bin/bash\", \"-c\"]\n      args:\n        - |\n    \
+          \      JENKINS_URL=\"^${JENKINS_URL}\"\n          JENKINS_AGENT_NAME=\"\
+          ^${JENKINS_AGENT_NAME}\"\n          JENKINS_SECRET=\"^${JENKINS_SECRET}\"\
+          \n          JENKINS_WORK_DIR=\"^${JENKINS_WORK_DIR:-/home/jenkins/agent}\"\
+          \  \n          curl -sO \"^${JENKINS_URL}/jnlpJars/agent.jar\"\n       \
+          \   java -jar agent.jar -jnlpUrl \"^${JENKINS_URL}/computer/^${JENKINS_AGENT_NAME}/jenkins-agent.jnlp\"\
+          \ -secret \"^${JENKINS_SECRET}\" -workDir \"^${JENKINS_WORK_DIR}\" -noCertificateCheck\n\
+          \      tty: true\n      workingDir: /home/jenkins/agent\n    - name: docker\n\
+          \      image: docker:19.03\n      command: [\"sh\", \"-c\", \"sleep 9999999\"\
+          ]\n      tty: true\n      securityContext:\n        privileged: true\n \
+          \       runAsUser: 0\n      volumeMounts:\n        - mountPath: /var/run/docker.sock\n\
+          \          name: docker-socket-volume\n  volumes:\n    - name: docker-socket-volume\n\
+          \      hostPath:\n        path: /var/run/docker.sock\n        type: Socket\n\
+          \  nodeSelector:\n    kubernetes.io/hostname: compute.3s.com"
+        yamlMergeStrategy: "override"
+        yamls:
+        - "apiVersion: v1\nkind: Pod\nmetadata:\n  name: agent\n  namespace: 3spfe\n\
+          spec:\n  containers:\n    - name: jnlp\n      image: quay.io/openshift/origin-jenkins-agent-maven\n\
+          \      command: [\"/bin/bash\", \"-c\"]\n      args:\n        - |\n    \
+          \      JENKINS_URL=\"^${JENKINS_URL}\"\n          JENKINS_AGENT_NAME=\"\
+          ^${JENKINS_AGENT_NAME}\"\n          JENKINS_SECRET=\"^${JENKINS_SECRET}\"\
+          \n          JENKINS_WORK_DIR=\"^${JENKINS_WORK_DIR:-/home/jenkins/agent}\"\
+          \  \n          curl -sO \"^${JENKINS_URL}/jnlpJars/agent.jar\"\n       \
+          \   java -jar agent.jar -jnlpUrl \"^${JENKINS_URL}/computer/^${JENKINS_AGENT_NAME}/jenkins-agent.jnlp\"\
+          \ -secret \"^${JENKINS_SECRET}\" -workDir \"^${JENKINS_WORK_DIR}\" -noCertificateCheck\n\
+          \      tty: true\n      workingDir: /home/jenkins/agent\n    - name: docker\n\
+          \      image: docker:19.03\n      command: [\"sh\", \"-c\", \"sleep 9999999\"\
+          ]\n      tty: true\n      securityContext:\n        privileged: true\n \
+          \       runAsUser: 0\n      volumeMounts:\n        - mountPath: /var/run/docker.sock\n\
+          \          name: docker-socket-volume\n  volumes:\n    - name: docker-socket-volume\n\
+          \      hostPath:\n        path: /var/run/docker.sock\n        type: Socket\n\
+          \  nodeSelector:\n    kubernetes.io/hostname: compute.3s.com"
+  disableRememberMe: false
+  disabledAdministrativeMonitors:
+  - "jenkins.model.BuiltInNodeMigration"
+  - "hudson.util.DoubleLaunchChecker"
+  labelAtoms:
+  - name: "java-builder"
+  - name: "kubeagent"
+  - name: "master"
+  - name: "maven"
+  - name: "nodejs"
+  - name: "nodejs-builder"
+  labelString: "master"
+  markupFormatter: "plainText"
+  mode: NORMAL
+  myViewsTabBar: "standard"
+  noUsageStatistics: true
+  nodeMonitors:
+  - "architecture"
+  - "clock"
+  - diskSpace:
+      freeSpaceThreshold: "1GiB"
+      freeSpaceWarningThreshold: "2GiB"
+  - "swapSpace"
+  - tmpSpace:
+      freeSpaceThreshold: "1GiB"
+      freeSpaceWarningThreshold: "2GiB"
+  - "responseTime"
+  numExecutors: 5
+  primaryView:
+    all:
+      name: "all"
+  projectNamingStrategy: "standard"
+  quietPeriod: 1
+  remotingSecurity:
+    enabled: true
+  scmCheckoutRetryCount: 0
+  securityRealm:
+    local:
+      allowsSignup: true
+      enableCaptcha: false
+      users:
+      - id: "admin"
+        name: "Jenkins Admin"
+        properties:
+        - "consoleUrlProvider"
+        - "myView"
+        - mailer:
+            emailAddress: "changeme@changeme.com"
+        - "apiToken"
+        - favoriting:
+            autofavoriteEnabled: true
+        - "favorite"
+        - preferredProvider:
+            providerId: "default"
+        - "timezone"
+        - "experimentalFlags"
+  slaveAgentPort: 50000
+  updateCenter:
+    sites:
+    - id: "default"
+      url: "https://updates.jenkins.io/update-center.json"
+  views:
+  - all:
+      name: "all"
+  viewsTabBar: "standard"
+globalCredentialsConfiguration:
+  configuration:
+    providerFilter: "none"
+    typeFilter: "none"
+appearance:
+  prism:
+    theme: PRISM
+security:
+  apiToken:
+    creationOfLegacyTokenEnabled: false
+    tokenGenerationOnCreationEnabled: false
+    usageStatisticsEnabled: true
+  cps:
+    hideSandbox: false
+  gitHooks:
+    allowedOnAgents: false
+    allowedOnController: false
+  gitHostKeyVerificationConfiguration:
+    sshHostKeyVerificationStrategy: "knownHostsFileVerificationStrategy"
+  globalJobDslSecurityConfiguration:
+    useScriptSecurity: true
+  sSHD:
+    port: -1
+  scriptApproval:
+    forceSandbox: false
+unclassified:
+  bitbucketEndpointConfiguration:
+    endpoints:
+    - bitbucketCloudEndpoint:
+        enableCache: false
+        manageHooks: false
+        repositoriesCacheDuration: 0
+        teamCacheDuration: 0
+  buildDiscarders:
+    configuredBuildDiscarders:
+    - "jobBuildDiscarder"
+  email-ext:
+    adminRequiredForTemplateTesting: false
+    allowUnregisteredEnabled: false
+    charset: "UTF-8"
+    debugMode: false
+    defaultBody: |-
+      $PROJECT_NAME - Build # $BUILD_NUMBER - $BUILD_STATUS:
+
+      Check console output at $BUILD_URL to view the results.
+    defaultContentType: "text/plain"
+    defaultSubject: "$PROJECT_NAME - Build # $BUILD_NUMBER - $BUILD_STATUS!"
+    defaultTriggerIds:
+    - "hudson.plugins.emailext.plugins.trigger.FailureTrigger"
+    maxAttachmentSize: -1
+    maxAttachmentSizeMb: -1
+    precedenceBulk: false
+    watchingEnabled: false
+  fingerprints:
+    fingerprintCleanupDisabled: false
+    storage: "file"
+  gitHubConfiguration:
+    apiRateLimitChecker: ThrottleForNormalize
+  gitHubPluginConfig:
+    hookUrl: "http://10.10.10.128:30080/github-webhook/"
+  globalPluginConfiguration:
+    buildConfigListInterval: 300
+    buildListInterval: 300
+    configMapListInterval: 300
+    enabled: true
+    foldersEnabled: true
+    imageStreamListInterval: 300
+    maxConnections: 100
+    namespace: "3spfe"
+    secretListInterval: 300
+    syncBuildConfigsAndBuilds: true
+    syncConfigMaps: true
+    syncImageStreams: true
+    syncSecrets: true
+    useClusterMode: false
+  junitTestResultStorage:
+    storage: "file"
+  location:
+    adminAddress: "address not configured yet <nobody@nowhere>"
+    url: "http://10.10.10.128:30080/"
+  mailer:
+    charset: "UTF-8"
+    useSsl: false
+    useTls: false
+  mavenModuleSet:
+    localRepository: "default"
+  pollSCM:
+    pollingThreadCount: 10
+  prometheusConfiguration:
+    appendParamLabel: false
+    appendStatusLabel: false
+    collectCodeCoverage: false
+    collectDiskUsage: true
+    collectNodeStatus: true
+    collectingMetricsPeriodInSeconds: 120
+    countAbortedBuilds: true
+    countFailedBuilds: true
+    countNotBuiltBuilds: true
+    countSuccessfulBuilds: true
+    countUnstableBuilds: true
+    defaultNamespace: "default"
+    fetchTestResults: true
+    jobAttributeName: "jenkins_job"
+    path: "prometheus"
+    perBuildMetrics: false
+    processingDisabledBuilds: false
+    useAuthenticatedEndpoint: false
+  scmGit:
+    addGitTagAction: false
+    allowSecondFetch: false
+    createAccountBasedOnEmail: false
+    disableGitToolChooser: false
+    hideCredentials: false
+    showEntireCommitSummaryInChanges: false
+    useExistingAccountWithSameEmail: false
+  sonarGlobalConfiguration:
+    buildWrapperEnabled: false
+    installations:
+    - credentialsId: "sonar"
+      name: "sonarqube"
+      serverUrl: "http://10.10.10.128:30090/"
+      triggers:
+        skipScmCause: false
+        skipUpstreamCause: false
+  sshPublisher:
+    commonConfig:
+      disableAllExec: false
+      encryptedPassphrase: "{AQAAABAAAAAQHIfxS0yz0anr9fe2av+DVAJ8u8YTT1kqTkhGzUEnAlw=}"
+  subversionSCM:
+    workspaceFormat: 8
+tool:
+  git:
+    installations:
+    - home: "git"
+      name: "Default"
+  mavenGlobalConfig:
+    globalSettingsProvider: "standard"
+    settingsProvider: "standard"

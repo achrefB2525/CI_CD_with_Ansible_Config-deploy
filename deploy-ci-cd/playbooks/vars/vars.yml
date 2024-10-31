@@ -1,0 +1,2 @@
+host_ip: "10.10.10.130"  
+deploy_path: "/home/origin/CI_CD_with_Ansible_Config-deploy"
