@@ -1,0 +1,21 @@
+[docker]
+localhost ansible_connection=local
+
+[openshift:vars]
+docker_username:                               # Nom d'utilisateur Docker Hub pour OpenShift
+docker_password: <votre_mot_de_passe>          # Mot de passe Docker Hub pour OpenShift
+openshift_password: root                       # Mot de passe de l'utilisateur OpenShift
+sonar_current_password: "admin"                # Mot de passe actuel de SonarQube
+sonar_new_password: "password"                 # Nouveau mot de passe pour SonarQube
+sonar_token_name: "sonar"                      # Nom du token pour SonarQube
+host_ip: "10.10.10.1"                          # IP d'un nœud dans le cluster OpenShift
+deploy_path: "/home/origin/CI_CD_with_Ansible_Config-deploy"  # Chemin vers CI_CD_with_Ansible_Config-deploy sur OpenShift
+
+[kubernetes:vars]
+docker_username:                               # Nom d'utilisateur Docker Hub pour Kubernetes
+docker_password: <votre_mot_de_passe>          # Mot de passe Docker Hub pour Kubernetes
+sonar_current_password: "admin"                # Mot de passe actuel de SonarQube
+sonar_new_password: "password"                 # Nouveau mot de passe pour SonarQube
+sonar_token_name: "sonar"                      # Nom du token pour SonarQube
+host_ip: "10.10.10.1"                          # IP d'un nœud dans le cluster Kubernetes
+deploy_path: "/home/origin/CI_CD_with_Ansible_Config-deploy"  # Chemin vers CI_CD_with_Ansible_Config-deploy sur Kubernetes
