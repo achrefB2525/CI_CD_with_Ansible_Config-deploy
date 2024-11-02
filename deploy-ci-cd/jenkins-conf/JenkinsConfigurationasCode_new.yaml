@@ -9,7 +9,7 @@ credentials:
           - string:
               id: "dockerhub"
               scope: GLOBAL
-              secret: "achref2525"
+              secret: ""
 
 jenkins:
   agentProtocols:
